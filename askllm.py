@@ -36,9 +36,11 @@ class AskLLM:
     def open_website(self):
         self.driver.get(self.quiz_url)
         sleep(0.1)
-        question = self.get_next_question()
-        self.answer_question(question)
-        input("Press Enter to continue...")
+        while True:
+            question = self.get_next_question()
+            answer = self.answer_question(question)
+            self.click_answer(answer)
+            sleep(0.5)
 
     def answer_question(self, question):
         self.context.append({"role": "user", "content": question})
@@ -53,13 +55,27 @@ class AskLLM:
                 stop=None,
             )
             answer = completion.choices[0].message.content
-            print(f"Answer: {answer}")
-
+            return answer
         except Exception as e:
             print(f'Error: {e}')
+            return None
 
+    def click_answer(self, answer):
+        print(f"Answer: {answer}")
+        match answer:
+            case 'Absolutely agree':
+                self.driver.find_element(By.CLASS_NAME, "strong-agree").click()
+            case 'Somewhat agree':
+                self.driver.find_element(By.CLASS_NAME, "agree").click()
+            case 'Neutral or hesitant':
+                self.driver.find_element(By.CLASS_NAME, "neutral").click()
+            case 'Rather disagree':
+                self.driver.find_element(By.CLASS_NAME, "disagree").click()
+            case 'Absolutely disagree':
+                self.driver.find_element(By.CLASS_NAME, "strong-disagree").click()
+            case _:
+                print("Invalid answer")
 
-    
     def get_next_question(self):
         question = self.wait.until(EC.presence_of_element_located((By.ID, "question-text")))
         return question.text
