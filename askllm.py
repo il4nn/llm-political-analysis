@@ -1,5 +1,4 @@
 import os
-from enum import Enum
 from time import sleep
 from groq import Groq
 from dataclasses import dataclass
@@ -10,19 +9,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 
-class Answer(Enum):
-    ABSOLUTELY_AGREE = "Absolutely agree"
-    SOMEWHAT_AGREE = "Somewhat agree"
-    NEUTRAL_OR_HESITANT = "Neutral or hesitant"
-    RATHER_DISAGREE = "Rather disagree"
-    ABSOLUTELY_DISAGREE = "Absolutely disagree"
-
-
 @dataclass
-class Question:
-    id: int
+class Answers:
+    question_id: int
     text: str
-    answer: Answer
     justification: str  
 
 class AskLLM:
@@ -44,7 +34,7 @@ class AskLLM:
                 "For each option output the exact string as it is written here, for example 'Neutral or hesitant'."
                 "IMPORTANT: Your entire response must contain only one of these exact options. Do not include any explanation, thinking, or other text. Just output the chosen option."
             }]
-        self.model = "qwen-qwq-32b"
+        self.model = "llama-3.2-3b-preview"
         self.quiz_url = "https://politiscales.party/quiz"
 
         stealth(self.driver,
@@ -71,13 +61,14 @@ class AskLLM:
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=self.context,
-                temperature=1,
+                temperature=0.1,
                 max_completion_tokens=1024,
                 top_p=1,
                 stream=False,
                 stop=None,
             )
             answer = self.parse_llm_answer(completion.choices[0].message.content.strip())
+            self.context.pop()
             return answer
         except Exception as e:
             print(f'Error: {e}')
