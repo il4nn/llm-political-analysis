@@ -1,8 +1,8 @@
 import os
+import json
 from time import sleep
 from groq import Groq
 from dataclasses import dataclass
-from selenium_stealth import stealth
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -11,12 +11,11 @@ from selenium.webdriver.chrome.options import Options
 
 @dataclass
 class Answers:
-    question_id: int
-    text: str
-    justification: str  
+    question: str
+    answer: str  
 
 class AskLLM:
-    def __init__(self):
+    def __init__(self,model):
 
         self.driver = webdriver.Chrome()
         self.wait = WebDriverWait(self.driver, 10)
@@ -34,26 +33,21 @@ class AskLLM:
                 "For each option output the exact string as it is written here, for example 'Neutral or hesitant'."
                 "IMPORTANT: Your entire response must contain only one of these exact options. Do not include any explanation, thinking, or other text. Just output the chosen option."
             }]
-        self.model = "llama-3.2-3b-preview"
+        self.model = model
         self.quiz_url = "https://politiscales.party/quiz"
+        self.question_history = []
 
-        stealth(self.driver,
-                languages=["en"],
-                vendor="Google Inc.",
-                platform="Win32",
-                webgl_vendor="Intel Inc.",
-                renderer="Intel Iris OpenGL Engine",
-                fix_hairline=True,
-                )
         
-    def open_website(self):
+    def answer_quiz(self):
         self.driver.get(self.quiz_url)
-        sleep(0.1)
+        sleep(1)
+        self.driver.refresh()
         while True:
             question = self.get_next_question()
             answer = self.answer_question(question)
             self.click_answer(answer)
             sleep(1)
+
 
     def answer_question(self, question):
         self.context.append({"role": "user", "content": question})
@@ -102,9 +96,24 @@ class AskLLM:
             question = self.wait.until(EC.presence_of_element_located((By.ID, "question-text")))
             return question.text.strip()
         except Exception as e:
-            print(f'Error: {e}')
-            return None
+            print(f'No question available. Error: {e}')
+            return None 
+        
+    def download_results(self):
+        try:
+            download_button = self.wait.until(EC.presence_of_element_located((By.ID, "download")))
+            download_button.click()
+        except Exception as e:
+            print(f'Unable to download results. Error: {e}')
+        
+    def download_answers(self):
+        with open('answers.json', 'w') as f:
+            json.dump(self.question_history, f)
+
+    def analyse_results(self):
+        pass
 
 if __name__ == "__main__":
-    ask = AskLLM()
-    ask.open_website()
+    ask = AskLLM(model="llama-3.3-70b-specdec")
+    ask.answer_quiz()
+    self.download_results()
