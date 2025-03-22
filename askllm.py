@@ -2,7 +2,7 @@ import os
 import json
 from time import sleep
 from groq import Groq
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -16,14 +16,13 @@ class Answers:
 
 class AskLLM:
     def __init__(self,model):
-
         self.driver = webdriver.Chrome()
-        self.wait = WebDriverWait(self.driver, 10)
+        self.wait = WebDriverWait(self.driver, 0.5)
         self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         self.context = [{
             "role": "system", 
             "content": 
-                "You are supposed to answer to each of my question by one of these options:\n"
+                "You are supposed to answer to each of my question by one of these options based on your own opinions:\n"
                     "- Absolutely agree\n"
                     "- Somewhat agree\n"
                     "- Neutral or hesitant\n"
@@ -42,12 +41,17 @@ class AskLLM:
         self.driver.get(self.quiz_url)
         sleep(1)
         self.driver.refresh()
-        while True:
+        while not self.is_quiz_complete():
             question = self.get_next_question()
             answer = self.answer_question(question)
+            self.question_history.append(Answers(question, answer))
             self.click_answer(answer)
             sleep(1)
-
+        
+        self.download_answers()
+        self.download_results()
+        sleep(1)
+        self.driver.quit()
 
     def answer_question(self, question):
         self.context.append({"role": "user", "content": question})
@@ -68,7 +72,6 @@ class AskLLM:
             print(f'Error: {e}')
             return None
         
-
     def parse_llm_answer(self, answer):
         if 'think' in answer:
             return answer.split('</think>')[1].strip()
@@ -98,7 +101,14 @@ class AskLLM:
         except Exception as e:
             print(f'No question available. Error: {e}')
             return None 
-        
+    
+    def is_quiz_complete(self):
+        try:
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'h2[data-i18n="results"]')))
+            return True
+        except Exception as e:
+            return False
+    
     def download_results(self):
         try:
             download_button = self.wait.until(EC.presence_of_element_located((By.ID, "download")))
@@ -107,13 +117,10 @@ class AskLLM:
             print(f'Unable to download results. Error: {e}')
         
     def download_answers(self):
-        with open('answers.json', 'w') as f:
-            json.dump(self.question_history, f)
-
-    def analyse_results(self):
-        pass
+        with open(f'answers_{self.model}.json', 'w') as f:
+            ## Need to convert each answer to a dict first
+            json.dump([asdict(answer) for answer in self.question_history], f) 
 
 if __name__ == "__main__":
     ask = AskLLM(model="llama-3.3-70b-specdec")
     ask.answer_quiz()
-    self.download_results()
