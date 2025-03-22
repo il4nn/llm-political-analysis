@@ -4,6 +4,7 @@ from time import sleep
 from groq import Groq
 from dataclasses import dataclass, asdict
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,8 +18,6 @@ class Answers:
 
 class AskLLM:
     def __init__(self,model):
-        self.driver = webdriver.Chrome()
-        self.wait = WebDriverWait(self.driver, 0.5)
         self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         self.context = [{
             "role": "system", 
@@ -35,6 +34,16 @@ class AskLLM:
                 "Select your preferred option and provide a brief one-sentence justification on the following line, without including phrases like 'I chose' or 'My selection is."
             }]
         self.model = model
+        options = Options()
+        prefs = {
+            "download.default_directory": os.environ.get("DOWNLOAD_DIR"),
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "safebrowsing.enabled": True,
+        }
+        options.add_experimental_option("prefs",prefs)
+        self.driver = webdriver.Chrome(options=options)
+        self.wait = WebDriverWait(self.driver, 0.5)
         self.quiz_url = "https://politiscales.party/quiz"
         self.question_history = []
 
@@ -46,7 +55,7 @@ class AskLLM:
         while not self.is_quiz_complete():
             question = self.get_next_question()
             answer,justification = self.answer_question(question)
-            self.question_history.append(Answers(question, answer,justification))
+            self.question_history.append(Answers(question,answer,justification))
             self.click_answer(answer)
             sleep(1)
         
