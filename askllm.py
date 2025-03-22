@@ -13,6 +13,7 @@ from selenium.webdriver.chrome.options import Options
 class Answers:
     question: str
     answer: str  
+    justification: str
 
 class AskLLM:
     def __init__(self,model):
@@ -31,6 +32,7 @@ class AskLLM:
                 "You can only choose between these options, nothing more, nothing less.\n"
                 "For each option output the exact string as it is written here, for example 'Neutral or hesitant'."
                 "IMPORTANT: Your entire response must contain only one of these exact options. Do not include any explanation, thinking, or other text. Just output the chosen option."
+                "Select your preferred option and provide a brief one-sentence justification on the following line, without including phrases like 'I chose' or 'My selection is."
             }]
         self.model = model
         self.quiz_url = "https://politiscales.party/quiz"
@@ -43,8 +45,8 @@ class AskLLM:
         self.driver.refresh()
         while not self.is_quiz_complete():
             question = self.get_next_question()
-            answer = self.answer_question(question)
-            self.question_history.append(Answers(question, answer))
+            answer,justification = self.answer_question(question)
+            self.question_history.append(Answers(question, answer,justification))
             self.click_answer(answer)
             sleep(1)
         
@@ -53,7 +55,7 @@ class AskLLM:
         sleep(1)
         self.driver.quit()
 
-    def answer_question(self, question):
+    def answer_question(self, question) -> tuple[str, str]:
         self.context.append({"role": "user", "content": question})
         try:
             completion = self.client.chat.completions.create(
@@ -70,13 +72,11 @@ class AskLLM:
             return answer
         except Exception as e:
             print(f'Error: {e}')
-            return None
+            return None,None
         
-    def parse_llm_answer(self, answer):
-        if 'think' in answer:
-            return answer.split('</think>')[1].strip()
-        else:
-            return answer
+    def parse_llm_answer(self, answer) -> tuple[str, str]:
+        ans,just = map(str.strip, answer.splitlines())
+        return ans, just
     
     def click_answer(self, answer):
         match answer:
@@ -117,7 +117,7 @@ class AskLLM:
             print(f'Unable to download results. Error: {e}')
         
     def download_answers(self):
-        with open(f'answers_{self.model}.json', 'w') as f:
+        with open(f'results/answers_{self.model}.json', 'w') as f:
             ## Need to convert each answer to a dict first
             json.dump([asdict(answer) for answer in self.question_history], f) 
 
