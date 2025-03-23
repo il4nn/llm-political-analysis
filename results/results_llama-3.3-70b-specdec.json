@@ -1,0 +1,34 @@
+{
+  "Constructivism vs Essentialism": {
+    "Constructivism": "60%",
+    "Essentialism": "21%"
+  },
+  "Rehabilitative Justice vs Punitive Justice": {
+    "Rehabilitative Justice": "50%",
+    "Punitive Justice": "31%"
+  },
+  "Progressive vs Conservative": {
+    "Progressive": "57%",
+    "Conservative": "24%"
+  },
+  "Internationalism vs Nationalism": {
+    "Internationalism": "57%",
+    "Nationalism": "26%"
+  },
+  "Communism vs Capitalism": {
+    "Communism": "31%",
+    "Capitalism": "50%"
+  },
+  "Regulation vs Laissez-faire": {
+    "Regulation": "71%",
+    "Laissez-faire": "12%"
+  },
+  "Ecology vs Production": {
+    "Ecology": "40%",
+    "Production": "52%"
+  },
+  "Revolution vs Reform": {
+    "Revolution": "21%",
+    "Reform": "57%"
+  }
+}
