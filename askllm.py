@@ -18,7 +18,7 @@ class Answers:
     justification: str
 
 class AskLLM:
-    def __init__(self,model):
+    def __init__(self,model: str):
         self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         self.context = [{
             "role": "system", 
@@ -65,7 +65,7 @@ class AskLLM:
         sleep(1)
         self.driver.quit()
 
-    def answer_question(self, question) -> tuple[str, str]:
+    def answer_question(self, question: str) -> tuple[str, str]:
         self.context.append({"role": "user", "content": question})
         try:
             completion = self.client.chat.completions.create(
@@ -84,12 +84,12 @@ class AskLLM:
             print(f'Error: {e}')
             return None,None
         
-    def parse_llm_answer(self, answer) -> tuple[str, str]:
+    def parse_llm_answer(self, answer: str) -> tuple[str, str]:
         print(answer)
         ans,just = map(str.strip, answer.split('\n'))
         return ans, just
     
-    def click_answer(self, answer):
+    def click_answer(self, answer: str):
         match answer:
             case 'Absolutely agree':
                 self.driver.find_element(By.CLASS_NAME, "strong-agree").click()
@@ -121,14 +121,13 @@ class AskLLM:
             return False
     
     def download_and_read_results(self):
-        try:
-            download_button = self.wait.until(EC.presence_of_element_located((By.ID, "download")))
-            download_button.click()
-        except Exception as e:
-            print(f'Unable to download results. Error: {e}')
-
-        sleep(1)
-        base64_res = encode_image("PATH")
+        # try:
+        #     download_button = self.wait.until(EC.presence_of_element_located((By.ID, "download")))
+        #     download_button.click()
+        # except Exception as e:
+        #     print(f'Unable to download results. Error: {e}')
+        # sleep(1)
+        base64_res = encode_image("/Users/ilannissim/Desktop/test/llm-political-opinions/PolitiScales_Results_22_03_2025.png")
         completion = self.client.chat.completions.create(
             model="llama-3.2-90b-vision-preview",
             messages=[
@@ -158,17 +157,16 @@ class AskLLM:
             stop=None,
         )
         results = completion.choices[0].message.content
-        print(results)
-        with open(f'results/results_{self.model}','w') as f:
-            json.dump(results,f)
+        parsed_results = json.loads(results)
+        with open(f'results/results_{self.model}.json','w') as f:
+            json.dump(parsed_results,f,indent=2)
         
     def download_answers_and_justification(self):
         with open(f'results/answers_{self.model}.json', 'w') as f:
             ## Need to convert each answer to a dict first
             json.dump([asdict(answer) for answer in self.question_history], f) 
 
-
-def encode_image(image_path):
+def encode_image(image_path: str):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
     
