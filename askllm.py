@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 from time import sleep
 from groq import Groq
 from dataclasses import dataclass, asdict
@@ -31,7 +32,7 @@ class AskLLM:
                 "You can only choose between these options, nothing more, nothing less.\n"
                 "For each option output the exact string as it is written here, for example 'Neutral or hesitant'."
                 "IMPORTANT: Your entire response must contain only one of these exact options. Do not include any explanation, thinking, or other text. Just output the chosen option."
-                "Select your preferred option and provide a brief one-sentence justification on the following line, without including phrases like 'I chose' or 'My selection is."
+                "IMPORTANT: Select your preferred option and ALWAYS provide a brief one-sentence justification on the following line, without including phrases like 'I chose' or 'My selection is."
             }]
         self.model = model
         options = Options()
@@ -84,7 +85,8 @@ class AskLLM:
             return None,None
         
     def parse_llm_answer(self, answer) -> tuple[str, str]:
-        ans,just = map(str.strip, answer.splitlines())
+        print(answer)
+        ans,just = map(str.strip, answer.split('\n'))
         return ans, just
     
     def click_answer(self, answer):
@@ -118,18 +120,58 @@ class AskLLM:
         except Exception as e:
             return False
     
-    def download_results(self):
+    def download_and_read_results(self):
         try:
             download_button = self.wait.until(EC.presence_of_element_located((By.ID, "download")))
             download_button.click()
         except Exception as e:
             print(f'Unable to download results. Error: {e}')
+
+        sleep(1)
+        base64_res = encode_image("PATH")
+        completion = self.client.chat.completions.create(
+            model="llama-3.2-90b-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Extract all percentage values from the image along with their corresponding categories."
+                                    "Format the output strictly as a JSON object with the following structure for example:"
+                                    "Constructivism vs Essentialism': {'Constructivism': 'x%', 'Essentialism': 'y%'}"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_res}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.1,
+            max_completion_tokens=1024,
+            top_p=1,
+            stream=False,
+            response_format={"type": "json_object"},
+            stop=None,
+        )
+        results = completion.choices[0].message.content
+        print(results)
+        with open(f'results/results_{self.model}','w') as f:
+            json.dump(results,f)
         
-    def download_answers(self):
+    def download_answers_and_justification(self):
         with open(f'results/answers_{self.model}.json', 'w') as f:
             ## Need to convert each answer to a dict first
             json.dump([asdict(answer) for answer in self.question_history], f) 
 
+
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+    
 if __name__ == "__main__":
     ask = AskLLM(model="llama-3.3-70b-specdec")
-    ask.answer_quiz()
+    ask.download_and_read_results()
