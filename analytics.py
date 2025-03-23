@@ -1,10 +1,9 @@
 import json
-from matplotlib import pyplot as plt
 import pandas as pd
-from collections import Counter
+from matplotlib import pyplot as plt
 
-def analyse_scores(model):
-    answers = load_answers(model)
+def analyse_scores(model: str):
+    answers = load(model,results=False)
     scores = dict.fromkeys(['Absolutely agree', 'Somewhat agree', 'Neutral or hesitant', 'Rather disagree', 'Absolutely disagree'], 0)
     for answer in answers:
         scores[answer['answer']] +=1 
@@ -16,10 +15,34 @@ def analyse_scores(model):
     plt.ylabel('Frequency')
     plt.show()
 
-def load_answers(model) -> dict:
-    with open(f'answers_{model}.json', 'r') as f:
-        data = json.load(f)
-    return data
 
-analyse_scores('llama-3.3-70b-specdec')
+def load(model: str, result: bool = True) -> dict:
+    filename = f"results/{'results' if result else 'answers'}_{model}.json"
+    with open(filename, 'r') as f:
+       return json.load(f)
 
+def find_diff(model1: str, model2: str):
+    ans1 = load(model1,results=False)
+    ans1 = load(model2,results=False) 
+
+def parse_results(model: str) -> pd.DataFrame:
+    results = load(model)
+    categories = list()
+    percentages = list()
+    for key in results.keys():
+        categories.append(key)
+        l,r = map(str.strip, key.split('vs'))
+        p = list(map(lambda x: ''.join(filter(str.isdigit,x)), results[key].values()))
+        p.insert(1,str(100 - int(p[0]) - int(p[1])))
+        percentages.append(p)
+
+    print(percentages)
+    df = pd.DataFrame(
+        {
+            "Categories": categories,
+            "Percentages": percentages,
+        }
+    )
+    print(df)
+
+parse_results('llama-3.3-70b-specdec')
