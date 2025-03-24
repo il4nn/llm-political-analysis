@@ -15,7 +15,6 @@ def analyse_scores(model: str):
     plt.ylabel('Frequency')
     plt.show()
 
-
 def load(model: str, result: bool = True) -> dict:
     filename = f"results/{'results' if result else 'answers'}_{model}.json"
     with open(filename, 'r') as f:
@@ -36,13 +35,14 @@ def parse_results(model: str) -> pd.DataFrame:
         p.insert(1,str(100 - int(p[0]) - int(p[1])))
         percentages.append(p)
 
-    print(percentages)
     df = pd.DataFrame(
         {
             "Categories": categories,
-            "Percentages": percentages,
-        }
+            "Left": [str(perc[0]) + "%" for perc in percentages],
+            "Neutral": [perc[1] + "%"  for perc in percentages],
+            "Right": [perc[2] + "%"  for perc in percentages]
+         }
     )
-    print(df)
+    return df
 
 parse_results('llama-3.3-70b-specdec')
