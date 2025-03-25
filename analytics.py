@@ -16,6 +16,19 @@ def score_to_int(score: str) -> int:
         case 'Rather disagree': return 2
         case 'Absolutely disagree': return 1
     
+# For Pre-processing
+def remove_null_answers(answers: list) -> list:
+    return [ans for ans in answers if ans["answer"] is not None or ans['justification'] is not None] 
+
+def remove_duplicate_answers(answers: list) -> list:
+    unique_questions = set() 
+    unique_answers = list() # Dict are immutable therefore unhashable in python 
+    for a in answers:
+        if a['question'] not in unique_questions:
+            unique_questions.add(a['question'])
+            unique_answers.append(a)
+    return unique_answers
+
 def analyse_scores(model: str):
     answers = load(model,results=False)
     scores = dict.fromkeys(['Absolutely agree', 'Somewhat agree', 'Neutral or hesitant', 'Rather disagree', 'Absolutely disagree'], 0)
@@ -28,22 +41,24 @@ def analyse_scores(model: str):
     plt.xlabel('Answer')
     plt.ylabel('Frequency')
     plt.show()
-    
-def compute_score_diff(model1: str, model2: str, max: int = 10) -> list:
-    ans_mod1 = load(model1,result=False)
-    ans_mod2 = load(model1,result=False) 
 
+def compute_score_diff(ans_mod1: str, ans_mod2: str, max: int = 10) -> list:
     assert len(ans_mod1) == len(ans_mod2)
-
-    ans_zipped = list(map(lambda x: (x[0]['answer'],x[1]['answer']), zip(ans_mod1,ans_mod1)))
-    print(ans_zipped)
+    
+    ans_idx = [x for x in range(1,len(ans_mod1)+1)]
+    ans_zipped = list(map(lambda x: (x[0]['answer'],x[1]['answer']), zip(ans_mod1,ans_mod1,ans_idx)))
     ans_zipped_int = list(map(lambda x: (score_to_int(x[0]),score_to_int(x[1])),ans_zipped))
     diff = list(map(lambda x: abs(x[0] - x[1]),ans_zipped_int))
     diff.sort()
     return diff[:max]
 
-def parse_results(model: str) -> pd.DataFrame:
+def count_neutral_answers(model: str) -> int:
     results = load(model)
+    df = parse_results(results)
+    n = df['Neutral']
+    print(n)
+    
+def parse_results(results: dict) -> pd.DataFrame:
     categories = list()
     percentages = list()
     for key in results.keys():
@@ -63,5 +78,13 @@ def parse_results(model: str) -> pd.DataFrame:
     )
     return df
 
-r = compute_score_diff('llama-3.3-70b-specdec',' n')
-print(r)
+ans_mod1 = load('qwen-qwq-32b',result=False)
+ans_mod2 = load('llama-3.3-70b-specdec',result=False)
+
+# Data Cleaning
+ans_mod1 = remove_null_answers(ans_mod1)
+ans_mod1 = remove_duplicate_answers(ans_mod1)
+ans_mod2 = remove_null_answers(ans_mod2)
+ans_mod2 = remove_duplicate_answers(ans_mod2)
+
+compute_score_diff(ans_mod1,ans_mod2)
