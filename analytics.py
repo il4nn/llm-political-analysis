@@ -2,7 +2,6 @@ import json
 import pandas as pd
 from matplotlib import pyplot as plt
 
-
 def load(model: str, result: bool = True) -> dict:
     filename = f"results/{'results' if result else 'answers'}_{model}.json"
     with open(filename, 'r') as f:
@@ -17,8 +16,14 @@ def score_to_int(score: str) -> int:
         case 'Absolutely disagree': return 1
     
 # For Pre-processing
+def is_valid_answer(ans: dict) -> bool:
+    if ans['answer'] is None or ans['justification'] is None:
+        return False
+    valid_keywords = ['agree', 'disagree', 'neutral']
+    return any(keyword in ans['answer'].lower() for keyword in valid_keywords)
+    
 def remove_null_answers(answers: list) -> list:
-    return [ans for ans in answers if ans["answer"] is not None or ans['justification'] is not None] 
+    return [ans for ans in answers if is_valid_answer(ans)] 
 
 def remove_duplicate_answers(answers: list) -> list:
     unique_questions = set() 
@@ -44,13 +49,25 @@ def analyse_scores(model: str):
 
 def compute_score_diff(ans_mod1: str, ans_mod2: str, max: int = 10) -> list:
     assert len(ans_mod1) == len(ans_mod2)
-    
+    # print(ans_mod1)
     ans_idx = [x for x in range(1,len(ans_mod1)+1)]
-    ans_zipped = list(map(lambda x: (x[0]['answer'],x[1]['answer']), zip(ans_mod1,ans_mod1,ans_idx)))
-    ans_zipped_int = list(map(lambda x: (score_to_int(x[0]),score_to_int(x[1])),ans_zipped))
+    ans_zipped = list(map(lambda x: (x[0]['answer'],x[1]['answer'],x[2]), zip(ans_mod1,ans_mod2,ans_idx)))
+    print(list(zip(ans_mod1,ans_mod2,ans_idx)))
+    ans_zipped_int = list(map(lambda x: (score_to_int(x[0]),score_to_int(x[1]),x[2]),ans_zipped))
+    print(ans_zipped_int)
     diff = list(map(lambda x: abs(x[0] - x[1]),ans_zipped_int))
     diff.sort()
+    # print(diff)
     return diff[:max]
+
+# def merge(ans_mod1: list, ans_mod2: list) -> list:
+#     assert len(ans_mod1) == len(ans_mod2)
+#     # q_num = [x for x in range(1,len(ans_mod1) + 1)]
+#     l = list()
+#     for tuple in list(zip(ans_mod1,ans_mod2)):
+#         # question = tuple[0]['question']
+#         # e = {question,}
+#         l.append({for k,v in triples[0].items()})    
 
 def count_neutral_answers(model: str) -> int:
     results = load(model)
@@ -80,7 +97,6 @@ def parse_results(results: dict) -> pd.DataFrame:
 
 ans_mod1 = load('qwen-qwq-32b',result=False)
 ans_mod2 = load('llama-3.3-70b-specdec',result=False)
-
 # Data Cleaning
 ans_mod1 = remove_null_answers(ans_mod1)
 ans_mod1 = remove_duplicate_answers(ans_mod1)
