@@ -1,6 +1,8 @@
 import json
+import torch
 import pandas as pd
 from matplotlib import pyplot as plt
+from sentence_transformers import SentenceTransformer
 
 def load(model: str, result: bool = True) -> dict:
     filename = f"results/{'results' if result else 'answers'}_{model}.json"
@@ -14,7 +16,18 @@ def score_to_int(score: str) -> int:
         case 'Neutral or hesitant': return 3
         case 'Rather disagree': return 2
         case 'Absolutely disagree': return 1
-    
+        # Semantic similarity if no exact matching 
+        case _ :
+            adverb,verb = map(str.strip, score.split())
+            model = SentenceTransformer("all-MiniLM-L6-v2")
+            keywords = ['Absolutely','Rather','Neutral']
+            keywords_embeddings = model.encode(keywords)
+            score_embedding = model.encode(adverb)
+            similarities = model.similarity(keywords_embeddings,score_embedding)
+            best_match_idx = torch.argmax(similarities).item()
+            new_score = f"{keywords[best_match_idx]} {verb}"
+            return score_to_int(new_score)
+
 # For Pre-processing
 def is_valid_answer(ans: dict) -> bool:
     if ans['answer'] is None or ans['justification'] is None:
@@ -49,12 +62,12 @@ def analyse_scores(model: str):
 
 def compute_score_diff(ans_mod1: str, ans_mod2: str, max: int = 10) -> list:
     assert len(ans_mod1) == len(ans_mod2)
-    # print(ans_mod1)
+
     ans_idx = [x for x in range(1,len(ans_mod1)+1)]
     ans_zipped = list(map(lambda x: (x[0]['answer'],x[1]['answer'],x[2]), zip(ans_mod1,ans_mod2,ans_idx)))
-    print(list(zip(ans_mod1,ans_mod2,ans_idx)))
+    # print(list(zip(ans_mod1,ans_mod2,ans_idx)))
     ans_zipped_int = list(map(lambda x: (score_to_int(x[0]),score_to_int(x[1]),x[2]),ans_zipped))
-    print(ans_zipped_int)
+    # print(ans_zipped_int)
     diff = list(map(lambda x: abs(x[0] - x[1]),ans_zipped_int))
     diff.sort()
     # print(diff)
