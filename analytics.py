@@ -16,7 +16,7 @@ def score_to_int(score: str) -> int:
         case 'Neutral or hesitant': return 3
         case 'Rather disagree': return 2
         case 'Absolutely disagree': return 1
-        # Semantic similarity if no exact matching 
+        # Computing semantic similarity between the answers if no exact matching 
         case _ :
             adverb,verb = map(str.strip, score.split())
             model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -28,7 +28,6 @@ def score_to_int(score: str) -> int:
             new_score = f"{keywords[best_match_idx]} {verb}"
             return score_to_int(new_score)
 
-# For Pre-processing
 def is_valid_answer(ans: dict) -> bool:
     if ans['answer'] is None or ans['justification'] is None:
         return False
@@ -60,27 +59,19 @@ def analyse_scores(model: str):
     plt.ylabel('Frequency')
     plt.show()
 
-def compute_score_diff(ans_mod1: str, ans_mod2: str, max: int = 10) -> list:
-    assert len(ans_mod1) == len(ans_mod2)
+def compute_score_difference(ans_mod1: list, ans_mod2: list) -> list:
+    assert len(ans_mod1) == len(ans_mod2), "Answers list must be of equal length"
 
     ans_idx = [x for x in range(1,len(ans_mod1)+1)]
     ans_zipped = list(map(lambda x: (x[0]['answer'],x[1]['answer'],x[2]), zip(ans_mod1,ans_mod2,ans_idx)))
-    # print(list(zip(ans_mod1,ans_mod2,ans_idx)))
     ans_zipped_int = list(map(lambda x: (score_to_int(x[0]),score_to_int(x[1]),x[2]),ans_zipped))
-    # print(ans_zipped_int)
-    diff = list(map(lambda x: abs(x[0] - x[1]),ans_zipped_int))
-    diff.sort()
-    # print(diff)
-    return diff[:max]
+    diff = list(map(lambda x: (abs(x[0] - x[1]),x[2]),ans_zipped_int))
+    diff.sort(key=lambda x: x[0],reverse=True)
+    return diff
 
-# def merge(ans_mod1: list, ans_mod2: list) -> list:
-#     assert len(ans_mod1) == len(ans_mod2)
-#     # q_num = [x for x in range(1,len(ans_mod1) + 1)]
-#     l = list()
-#     for tuple in list(zip(ans_mod1,ans_mod2)):
-#         # question = tuple[0]['question']
-#         # e = {question,}
-#         l.append({for k,v in triples[0].items()})    
+def get_most_divergent_answers(ans_mod1: list, ans_mod2: list, diff,max: int = 10) -> list:
+    zipped = list(zip(ans_mod1,ans_mod2))
+    return [zipped[idx-1] for idx in (x[1] for x in diff[:max])]
 
 def count_neutral_answers(model: str) -> int:
     results = load(model)
@@ -116,4 +107,6 @@ ans_mod1 = remove_duplicate_answers(ans_mod1)
 ans_mod2 = remove_null_answers(ans_mod2)
 ans_mod2 = remove_duplicate_answers(ans_mod2)
 
-compute_score_diff(ans_mod1,ans_mod2)
+diff = compute_score_difference(ans_mod1,ans_mod2)
+ans = get_most_divergent_answers(ans_mod1,ans_mod2,diff)
+print(ans[0][0])
