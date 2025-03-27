@@ -16,9 +16,17 @@ def score_to_int(score: str) -> int:
         case 'Neutral or hesitant': return 3
         case 'Rather disagree': return 2
         case 'Absolutely disagree': return 1
-        # Computing semantic similarity between the answers if no exact matching 
-        case _ :
-            adverb,verb = map(str.strip, score.split())
+        case _: return None
+
+def is_valid_answer(ans: dict) -> bool:
+    if ans['answer'] is None or ans['justification'] is None:
+        return False
+    valid_verbs = ['agree', 'disagree', 'Neutral']
+    valid_adverbs = {'agree' : ['Absolutely','Somewhat'], 'disagree': ['Rather','Absolutely'], 'or': []}
+    if any(verb in ans['answer'] for verb in valid_verbs): #If there is a valid verb
+        adverb, verb = list(map(str.strip, ans['answer'].split()))[:2]
+        if not any(adverb in adverb in ans['answer'] for adverb in valid_adverbs[verb]):
+            # Computing semantic similarity between the answers if no exact matching 
             model = SentenceTransformer("all-MiniLM-L6-v2")
             keywords = ['Absolutely','Rather','Neutral']
             keywords_embeddings = model.encode(keywords)
@@ -26,15 +34,11 @@ def score_to_int(score: str) -> int:
             similarities = model.similarity(keywords_embeddings,score_embedding)
             best_match_idx = torch.argmax(similarities).item()
             new_score = f"{keywords[best_match_idx]} {verb}"
-            return score_to_int(new_score)
-
-def is_valid_answer(ans: dict) -> bool:
-    if ans['answer'] is None or ans['justification'] is None:
-        return False
-    valid_keywords = ['agree', 'disagree', 'neutral']
-    return any(keyword in ans['answer'].lower() for keyword in valid_keywords)
+            ans['answer'] = new_score
+        return True
+    return False
     
-def remove_null_answers(answers: list) -> list:
+def remove_invalid_answers(answers: list) -> list:
     return [ans for ans in answers if is_valid_answer(ans)] 
 
 def remove_duplicate_answers(answers: list) -> list:
@@ -63,11 +67,6 @@ def score_histogram(model1: str,ans_mod1: list, model2: str, ans_mod2: list) -> 
     })
     
     return df
-    # df.plot(kind='bar')
-    # plt.title(f'Answer histogram for model: {model}')
-    # plt.xlabel('Answer')
-    # plt.ylabel('Frequency')
-    # plt.show()
 
 def compute_score_difference(ans_mod1: list, ans_mod2: list) -> list:
     assert len(ans_mod1) == len(ans_mod2), "Answers list must be of equal length"
@@ -112,9 +111,10 @@ def parse_results(results: dict) -> pd.DataFrame:
 ans_mod1 = load('qwen-qwq-32b',result=False)
 ans_mod2 = load('llama-3.3-70b-specdec',result=False)
 # Data Cleaning
-ans_mod1 = remove_null_answers(ans_mod1)
+ans_mod1 = remove_invalid_answers(ans_mod1)
 ans_mod1 = remove_duplicate_answers(ans_mod1)
-ans_mod2 = remove_null_answers(ans_mod2)
+ans_mod2 = remove_invalid_answers(ans_mod2)
 ans_mod2 = remove_duplicate_answers(ans_mod2)
-
+print(len(ans_mod1))
+print(len(ans_mod2))
 # score_histogram(ans_mod2,ans_mod2)
