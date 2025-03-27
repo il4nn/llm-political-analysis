@@ -1,6 +1,7 @@
 from analytics import *
 import streamlit as st
 import pandas as pd  
+from vega_datasets import data
 
 st.title('LLM Political Analysis')
 
@@ -40,6 +41,10 @@ if model1 and model2:
     ans_mod2 = remove_null_answers(ans_mod2)
     ans_mod2 = remove_duplicate_answers(ans_mod2)
     
+    source = score_histogram(model1,ans_mod1,model2,ans_mod1)
+    st.bar_chart(source, stack=False)
+
+
     diff = compute_score_difference(ans_mod1,ans_mod2)
     
     st.write('Explore Questions with the Greatest Disagreement')

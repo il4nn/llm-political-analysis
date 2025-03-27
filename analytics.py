@@ -46,18 +46,28 @@ def remove_duplicate_answers(answers: list) -> list:
             unique_answers.append(a)
     return unique_answers
 
-def analyse_scores(model: str):
-    answers = load(model,results=False)
-    scores = dict.fromkeys(['Absolutely agree', 'Somewhat agree', 'Neutral or hesitant', 'Rather disagree', 'Absolutely disagree'], 0)
-    for answer in answers:
-        scores[answer['answer']] +=1 
+def score_histogram(model1: str,ans_mod1: list, model2: str, ans_mod2: list) -> pd.DataFrame:
+    scores1 = dict.fromkeys(['Absolutely agree', 'Somewhat agree', 'Neutral or hesitant', 'Rather disagree', 'Absolutely disagree'], 0)
+    scores2 = dict.fromkeys(['Absolutely agree', 'Somewhat agree', 'Neutral or hesitant', 'Rather disagree', 'Absolutely disagree'], 0)
     
-    df = pd.DataFrame.from_dict(scores, orient='index')
-    df.plot(kind='bar')
-    plt.title(f'Answer histogram for model: {model}')
-    plt.xlabel('Answer')
-    plt.ylabel('Frequency')
-    plt.show()
+    for ans in ans_mod1:
+        print(ans)
+        scores1[ans['answer']] += 1 
+
+    for ans in ans_mod2:
+        scores2[ans['answer']] += 1 
+    
+    df = pd.DataFrame({
+        f'Model {model1}': scores1,
+        f'Model {model2}': scores2
+    })
+    
+    return df
+    # df.plot(kind='bar')
+    # plt.title(f'Answer histogram for model: {model}')
+    # plt.xlabel('Answer')
+    # plt.ylabel('Frequency')
+    # plt.show()
 
 def compute_score_difference(ans_mod1: list, ans_mod2: list) -> list:
     assert len(ans_mod1) == len(ans_mod2), "Answers list must be of equal length"
@@ -107,6 +117,4 @@ ans_mod1 = remove_duplicate_answers(ans_mod1)
 ans_mod2 = remove_null_answers(ans_mod2)
 ans_mod2 = remove_duplicate_answers(ans_mod2)
 
-diff = compute_score_difference(ans_mod1,ans_mod2)
-ans = get_most_divergent_answers(ans_mod1,ans_mod2,diff)
-print(ans[0][0])
+# score_histogram(ans_mod2,ans_mod2)
