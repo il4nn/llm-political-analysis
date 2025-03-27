@@ -16,16 +16,19 @@ def score_to_int(score: str) -> int:
         case 'Neutral or hesitant': return 3
         case 'Rather disagree': return 2
         case 'Absolutely disagree': return 1
-        case _: return None
+        case _: 
+            print(score)
+            return None
 
-def is_valid_answer(ans: dict) -> bool:
-    if ans['answer'] is None or ans['justification'] is None:
+def is_valid_answer(answer: dict) -> bool:
+    if answer['answer'] is None or answer['justification'] is None:
         return False
     valid_verbs = ['agree', 'disagree', 'Neutral']
-    valid_adverbs = {'agree' : ['Absolutely','Somewhat'], 'disagree': ['Rather','Absolutely'], 'or': []}
-    if any(verb in ans['answer'] for verb in valid_verbs): #If there is a valid verb
-        adverb, verb = list(map(str.strip, ans['answer'].split()))[:2]
-        if not any(adverb in adverb in ans['answer'] for adverb in valid_adverbs[verb]):
+    valid_adverbs = {'agree' : ['Absolutely','Somewhat'], 'disagree': ['Rather','Absolutely']}
+    ans = answer['answer']
+    if any(verb in ans for verb in valid_verbs): #If there is a valid verb
+        adverb, verb = list(map(str.strip, ans.split()))[:2]
+        if 'Neutral' not in ans and not any(adverb in adverb in ans for adverb in valid_adverbs[verb]):
             # Computing semantic similarity between the answers if no exact matching 
             model = SentenceTransformer("all-MiniLM-L6-v2")
             keywords = ['Absolutely','Rather','Neutral']
@@ -34,7 +37,7 @@ def is_valid_answer(ans: dict) -> bool:
             similarities = model.similarity(keywords_embeddings,score_embedding)
             best_match_idx = torch.argmax(similarities).item()
             new_score = f"{keywords[best_match_idx]} {verb}"
-            ans['answer'] = new_score
+            answer['answer'] = new_score
         return True
     return False
     
@@ -55,7 +58,6 @@ def score_histogram(model1: str,ans_mod1: list, model2: str, ans_mod2: list) -> 
     scores2 = dict.fromkeys(['Absolutely agree', 'Somewhat agree', 'Neutral or hesitant', 'Rather disagree', 'Absolutely disagree'], 0)
     
     for ans in ans_mod1:
-        print(ans)
         scores1[ans['answer']] += 1 
 
     for ans in ans_mod2:
@@ -115,6 +117,5 @@ ans_mod1 = remove_invalid_answers(ans_mod1)
 ans_mod1 = remove_duplicate_answers(ans_mod1)
 ans_mod2 = remove_invalid_answers(ans_mod2)
 ans_mod2 = remove_duplicate_answers(ans_mod2)
-print(len(ans_mod1))
-print(len(ans_mod2))
+diff = compute_score_difference(ans_mod1,ans_mod2)
 # score_histogram(ans_mod2,ans_mod2)
