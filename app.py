@@ -57,17 +57,31 @@ if model1 and model2:
         st.subheader(f'Explore the Distribution of Answers for Each Model')
         source = score_histogram(model1,ans_mod1,model2,ans_mod2)
         st.bar_chart(source, stack=False)
-
-        diff = compute_score_difference(ans_mod1,ans_mod2)
-        
+    
+    left, right = st.columns([1,1])
+    diff = compute_score_difference(ans_mod1,ans_mod2)
+    with left: 
         st.subheader('Explore Questions with the Greatest Disagreement')
-        num_questions = st.number_input(
-            "", value=None, placeholder="Number of questions"
-        )
-        if num_questions:
-            div = get_most_divergent_answers(ans_mod1,ans_mod2,diff,max=int(num_questions))
-            for ans in div: 
-                st.write(ans[0]['question'])
+
+        div = get_most_divergent_answers(ans_mod1,ans_mod2,diff,max=10)
+        for ans in div: 
+            j0 = ans[0]['justification']
+            j1 = ans[1]['justification']
+            with st.expander(f"{ans[0]['question']} {'(Justification)'}"): 
+                st.write(f'**Justification for {model1}**: {j0}')
+                st.write(f'**Justification for {model2}**: {j1}')
+    with right: 
+        st.subheader('Explore Questions with the Greatest Consensus')
+
+        cons = get_most_similar_answers(ans_mod1,ans_mod2,diff,max=10)
+        for ans in cons: 
+            with st.expander(f"{ans[0]['question']} {'(Justification)'}"): 
+                j0 = ans[0]['justification']
+                j1 = ans[1]['justification']
+                st.write(f'**Justification for {model1}**: {j0}')
+                st.write(f'**Justification for {model2}**: {j1}')
+
+
 
 
 

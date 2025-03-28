@@ -16,9 +16,7 @@ def score_to_int(score: str) -> int:
         case 'Neutral or hesitant': return 3
         case 'Rather disagree': return 2
         case 'Absolutely disagree': return 1
-        case _: 
-            print(score)
-            return None
+        case _: return None
 
 def is_valid_answer(answer: dict) -> bool:
     if answer['answer'] is None or answer['justification'] is None:
@@ -80,8 +78,13 @@ def compute_score_difference(ans_mod1: list, ans_mod2: list) -> list:
     diff.sort(key=lambda x: x[0],reverse=True)
     return diff
 
-def get_most_divergent_answers(ans_mod1: list, ans_mod2: list, diff,max: int = 10) -> list:
+def get_most_divergent_answers(ans_mod1: list, ans_mod2: list, diff: list,max: int = 10) -> list:
     zipped = list(zip(ans_mod1,ans_mod2))
+    return [zipped[idx-1] for idx in (x[1] for x in diff[:max])]
+
+def get_most_similar_answers(ans_mod1: list, ans_mod:2, diff: list, max:int = 10) -> list:
+    zipped = list(zip(ans_mod1,ans_mod2)) 
+    diff.sort(key =lambda x:x[0])
     return [zipped[idx-1] for idx in (x[1] for x in diff[:max])]
 
 def count_neutral_answers(model: str) -> int:
