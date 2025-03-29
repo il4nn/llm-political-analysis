@@ -69,16 +69,27 @@ if model1 and model2:
             with st.expander(f"{ans[0]['question']} {'(Justification)'}"): 
                 st.write(f'**Justification for {model1}**: {j0}')
                 st.write(f'**Justification for {model2}**: {j1}')
+                df = pd.DataFrame({
+                    f'Score {model1}': ans[0]['answer'],
+                    f'Score {model2}': ans[1]['answer']
+                },index=[0])
+                st.dataframe(df,hide_index=True)
+
     with right: 
         st.subheader('Explore Questions with the Greatest Consensus')
 
         cons = get_most_similar_answers(ans_mod1,ans_mod2,diff,max=10)
         for ans in cons: 
+            j0 = ans[0]['justification']
+            j1 = ans[1]['justification']
             with st.expander(f"{ans[0]['question']} {'(Justification)'}"): 
-                j0 = ans[0]['justification']
-                j1 = ans[1]['justification']
                 st.write(f'**Justification for {model1}**: {j0}')
                 st.write(f'**Justification for {model2}**: {j1}')
+                df = pd.DataFrame({
+                    f'Score {model1}': ans[0]['answer'],
+                    f'Score {model2}': ans[1]['answer']
+                }, index=[0])
+                st.dataframe(df,hide_index=True)
 
 
 

@@ -82,7 +82,7 @@ def get_most_divergent_answers(ans_mod1: list, ans_mod2: list, diff: list,max: i
     zipped = list(zip(ans_mod1,ans_mod2))
     return [zipped[idx-1] for idx in (x[1] for x in diff[:max])]
 
-def get_most_similar_answers(ans_mod1: list, ans_mod:2, diff: list, max:int = 10) -> list:
+def get_most_similar_answers(ans_mod1: list, ans_mod2: list, diff: list, max:int = 10) -> list:
     zipped = list(zip(ans_mod1,ans_mod2)) 
     diff.sort(key =lambda x:x[0])
     return [zipped[idx-1] for idx in (x[1] for x in diff[:max])]
